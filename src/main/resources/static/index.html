@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Alumno - La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="card">
+    <h1>Registrar alumno</h1>
+
+    <form id="formEstudiante">
+        <label>Código <input type="text" name="codigo" required></label>
+        <label>DNI <input type="text" name="dni" maxlength="8" required></label>
+        <label>Nombres <input type="text" name="nombres" required></label>
+        <label>Apellidos <input type="text" name="apellidos" required></label>
+        <label>Fecha de nacimiento <input type="date" name="fechaNacimiento" required></label>
+        <button type="submit">Guardar</button>
+    </form>
+
+    <p id="mensaje"></p>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
