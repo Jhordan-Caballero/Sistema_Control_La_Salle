@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrícula · La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<aside id="nav"></aside>
+
+<main>
+    <header class="page-header">
+        <h1>Matrícula</h1>
+        <p>Matricula a un alumno en un periodo y sección</p>
+    </header>
+
+    <section class="split">
+        <form id="fMat" class="card">
+            <h2>📝 Nueva matrícula</h2>
+            <label>Alumno<select id="est" required></select></label>
+            <label>Periodo<select id="per" required></select></label>
+            <label>Sección<select id="sec" required></select></label>
+            <button class="btn-full">Matricular</button>
+            <div id="res"></div>
+        </form>
+
+        <div class="card">
+            <h2>¿Qué valida el sistema?</h2>
+            <ol class="steps">
+                <li>El periodo está activo y dentro de sus fechas de matrícula.</li>
+                <li>El alumno no tiene deuda del año anterior, salvo que tenga un fraccionamiento aprobado.</li>
+                <li>La sección todavía tiene vacantes.</li>
+                <li>Se generan automáticamente las cuotas de matrícula y 10 pensiones.</li>
+            </ol>
+        </div>
+    </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    async function init() {
+        const [est, per, sec] = await Promise.all([
+            api("GET", "/estudiantes"),
+            api("GET", "/catalogo/periodos"),
+            api("GET", "/catalogo/secciones")
+        ]);
+        fillSelect($("est"), est, e => `${e.codigo} · ${e.nombres} ${e.apellidos}`, "Seleccione alumno");
+        fillSelect($("per"), per, p => `${p.anio} (${p.estado})`, "Seleccione periodo");
+        fillSelect($("sec"), sec, s => `${s.grado.nombre} · Sección ${s.nombre} · ${s.vacantes} vacantes`, "Seleccione sección");
+    }
+
+    $("fMat").addEventListener("submit", async e => {
+        e.preventDefault();
+        const btn = e.target.querySelector("button");
+        btn.disabled = true;
+        try {
+            const m = await api("POST", "/matriculas", {
+                estudianteId: Number($("est").value),
+                periodoId: Number($("per").value),
+                seccionId: Number($("sec").value)
+            });
+            $("res").innerHTML = `
+        <div class="result">
+          <span class="badge ok">Matrícula #${m.id}</span>
+          <p>Matriculado en ${esc(m.seccion.grado.nombre)}, sección ${esc(m.seccion.nombre)}. Se generaron 11 cuotas.</p>
+          <a href="estado-cuenta.html?id=${m.estudiante.id}">Ver estado de cuenta →</a>
+        </div>`;
+            toast("Matrícula registrada");
+        } catch (err) {
+            $("res").innerHTML = `<div class="result"><span class="badge err">No permitido</span><p>${esc(err.message)}</p></div>`;
+            toast(err.message, false);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    init().catch(e => toast(e.message, false));
+</script>
+</body>
+</html>

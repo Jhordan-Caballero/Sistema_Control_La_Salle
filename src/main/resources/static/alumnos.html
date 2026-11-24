@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumnos · La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<aside id="nav"></aside>
+
+<main>
+    <header class="page-header">
+        <h1>Alumnos</h1>
+        <p>Registro de estudiantes y vínculo con su apoderado</p>
+    </header>
+
+    <section class="split">
+        <form id="fEst" class="card">
+            <h2>🧑‍🎓 Nuevo alumno</h2>
+            <div class="row">
+                <label>Código<input name="codigo" required></label>
+                <label>DNI<input name="dni" maxlength="8" required></label>
+            </div>
+            <div class="row">
+                <label>Nombres<input name="nombres" required></label>
+                <label>Apellidos<input name="apellidos" required></label>
+            </div>
+            <label>Fecha de nacimiento<input name="fechaNacimiento" type="date" required></label>
+            <label>Apoderado
+                <select id="apoderado" name="apoderado"></select>
+            </label>
+            <button class="btn-full">Registrar alumno</button>
+        </form>
+
+        <div class="card">
+            <h2>Alumnos registrados</h2>
+            <input id="buscar" class="search" placeholder="🔍 Buscar por código, DNI o nombre">
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Código</th><th>DNI</th><th>Alumno</th><th>Apoderado</th></tr></thead>
+                    <tbody id="tabla"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    let estudiantes = [];
+
+    function pintar(lista) {
+        $("tabla").innerHTML = lista.length ? lista.map(e => `
+      <tr>
+        <td>${esc(e.codigo)}</td>
+        <td>${esc(e.dni)}</td>
+        <td>${esc(e.nombres)} ${esc(e.apellidos)}</td>
+        <td>${e.apoderado
+                ? esc(e.apoderado.nombres) + " " + esc(e.apoderado.apellidos)
+                : '<span class="badge warn">Sin apoderado</span>'}</td>
+      </tr>`).join("")
+            : `<tr><td colspan="4" class="empty">Sin alumnos registrados</td></tr>`;
+    }
+
+    async function cargar() {
+        const [est, apo] = await Promise.all([
+            api("GET", "/estudiantes"),
+            api("GET", "/catalogo/apoderados")
+        ]);
+        estudiantes = est;
+        fillSelect($("apoderado"), apo, a => `${a.nombres} ${a.apellidos} (${a.dni})`, "Sin apoderado");
+        pintar(est);
+    }
+
+    $("buscar").addEventListener("input", e => {
+        const q = e.target.value.toLowerCase();
+        pintar(estudiantes.filter(x =>
+            (x.codigo + x.dni + x.nombres + x.apellidos).toLowerCase().includes(q)));
+    });
+
+    $("fEst").addEventListener("submit", async e => {
+        e.preventDefault();
+        const d = formToObj(new FormData(e.target));
+        const body = { codigo: d.codigo, dni: d.dni, nombres: d.nombres,
+            apellidos: d.apellidos, fechaNacimiento: d.fechaNacimiento };
+        if (d.apoderado) body.apoderado = { id: Number(d.apoderado) };
+        try {
+            await api("POST", "/estudiantes", body);
+            e.target.reset();
+            toast("Alumno registrado");
+            cargar();
+        } catch (err) { toast(err.message, false); }
+    });
+
+    cargar().catch(e => toast(e.message, false));
+</script>
+</body>
+</html>

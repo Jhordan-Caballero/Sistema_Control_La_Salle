@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -34,5 +35,9 @@ public class EstudianteController {
     public ResponseEntity<Map<String, String>> duplicado(DataIntegrityViolationException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "Ya existe un estudiante con ese código o DNI"));
+    }
+    @GetMapping
+    public List<Estudiante> listar() {
+        return service.listar();
     }
 }

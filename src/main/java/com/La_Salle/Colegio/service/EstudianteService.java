@@ -31,4 +31,7 @@ public class EstudianteService {
         // save() hace INSERT porque el id todavía es null
         return dao.save(e);
     }
+    public List<Estudiante> listar() {
+        return dao.findAll();
+    }
 }

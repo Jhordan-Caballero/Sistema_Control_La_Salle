@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciliación · La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<aside id="nav"></aside>
+
+<main>
+    <header class="page-header">
+        <h1>Conciliación bancaria</h1>
+        <p>Importa el reporte del banco y cruza sus movimientos con los pagos del colegio</p>
+    </header>
+
+    <section class="split">
+        <div class="stack">
+            <form id="fRep" class="card">
+                <h2>1. Importar reporte</h2>
+                <label>Banco
+                    <select id="banco" required>
+                        <option>BCP</option>
+                        <option>BBVA</option>
+                        <option>Interbank</option>
+                        <option>Scotiabank</option>
+                        <option>Otro</option>
+                    </select>
+                </label>
+                <label>Archivo CSV<input id="archivo" type="file" accept=".csv" required></label>
+                <button class="btn-full">Subir reporte</button>
+                <div id="resRep"></div>
+            </form>
+
+            <div class="card">
+                <h2>2. Conciliar</h2>
+                <label>ID del reporte<input id="reporteId" type="number" min="1"></label>
+                <button class="btn-full" id="btnConciliar">Conciliar movimientos</button>
+                <div id="resConc"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Formato del archivo CSV</h2>
+            <p style="color:var(--muted)">La primera fila es la cabecera. Separe los campos con punto y coma:</p>
+            <pre style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow-x:auto;font-size:14px">codigoEstudiante;nroOperacion;fecha;monto
+2026-001;BCP-0001;2026-11-23;250.00
+2026-002;BCP-0002;2026-11-23;120.50</pre>
+            <ul style="line-height:1.8;color:#374151">
+                <li>La fecha va en formato <code>yyyy-MM-dd</code>.</li>
+                <li>Un mismo archivo no se puede cargar dos veces.</li>
+                <li>Los movimientos sin coincidencia quedan marcados como diferencia para revisión manual.</li>
+            </ul>
+        </div>
+    </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    $("fRep").addEventListener("submit", async e => {
+        e.preventDefault();
+        const file = $("archivo").files[0];
+        const fd = new FormData();
+        fd.append("banco", $("banco").value);
+        fd.append("archivo", file);
+        fd.append("usuario", "tesorero");
+        try {
+            const r = await api("POST", "/conciliacion/reportes", fd);
+            $("reporteId").value = r.id;
+            $("resRep").innerHTML = `<div class="result"><span class="badge ok">Reporte #${r.id}</span>
+        <p>${esc(r.banco)} · ${esc(r.nombreArchivo)} cargado. Ahora puede conciliarlo.</p></div>`;
+            toast("Reporte cargado");
+            e.target.reset();
+        } catch (err) {
+            $("resRep").innerHTML = `<div class="result"><span class="badge err">Error</span><p>${esc(err.message)}</p></div>`;
+            toast(err.message, false);
+        }
+    });
+
+    $("btnConciliar").addEventListener("click", async () => {
+        const id = $("reporteId").value;
+        if (!id) return toast("Ingrese el ID del reporte", false);
+        const btn = $("btnConciliar");
+        btn.disabled = true;
+        try {
+            const r = await api("POST", `/conciliacion/reportes/${id}/conciliar`);
+            $("resConc").innerHTML = `
+        <div class="result">
+          <p><span class="badge ok">Conciliados: ${r.conciliados}</span>
+             <span class="badge warn">Diferencias: ${r.diferencias}</span></p>
+          <p>Las diferencias requieren revisión manual del tesorero.</p>
+        </div>`;
+            toast("Conciliación completada");
+        } catch (err) {
+            $("resConc").innerHTML = `<div class="result"><span class="badge err">Error</span><p>${esc(err.message)}</p></div>`;
+            toast(err.message, false);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

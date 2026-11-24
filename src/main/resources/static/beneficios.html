@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beneficios · La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<aside id="nav"></aside>
+
+<main>
+    <header class="page-header">
+        <h1>Descuentos, becas y fraccionamientos</h1>
+        <p>Aplica beneficios a la matrícula de un alumno</p>
+    </header>
+
+    <div class="card" style="margin-bottom:20px">
+        <label style="margin:0">Matrícula
+            <select id="mat"></select>
+        </label>
+    </div>
+
+    <section class="grid">
+        <div class="card">
+            <h2>👨‍👩‍👧‍👦 Descuento por hermanos</h2>
+            <p style="color:var(--muted);font-size:14px">Aplica 10% de descuento a las pensiones cuando el apoderado tiene más de dos hijos matriculados en el periodo.</p>
+            <button class="btn-full" onclick="hermanos()">Aplicar descuento</button>
+        </div>
+
+        <form id="fBeca" class="card">
+            <h2>🏅 Beca</h2>
+            <label>Porcentaje (%)<input id="porc" type="number" min="1" max="100" step="0.5" required></label>
+            <label>Motivo<input id="motivo" placeholder="Beca por rendimiento"></label>
+            <button class="btn-full">Aplicar beca</button>
+        </form>
+
+        <form id="fFrac" class="card">
+            <h2>📆 Fraccionamiento</h2>
+            <p style="color:var(--muted);font-size:14px">Convierte la deuda pendiente en nuevas cuotas mensuales.</p>
+            <label>Número de cuotas<input id="nroCuotas" type="number" min="2" max="12" value="3" required></label>
+            <button class="btn-full">Crear fraccionamiento</button>
+        </form>
+    </section>
+
+    <div id="res"></div>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    const mostrar = (ok, html) => {
+        $("res").innerHTML = `<div class="card" style="margin-top:20px">
+      <span class="badge ${ok ? "ok" : "err"}">${ok ? "Aplicado" : "No permitido"}</span>
+      <div class="result">${html}</div></div>`;
+    };
+
+    function matriculaSeleccionada() {
+        const id = $("mat").value;
+        if (!id) throw new Error("Seleccione una matrícula");
+        return id;
+    }
+
+    window.hermanos = async () => {
+        try {
+            const d = await api("POST", `/beneficios/hermanos/${matriculaSeleccionada()}`);
+            mostrar(true, `<p>Descuento de ${d.porcentaje}% aplicado a las pensiones pendientes.</p>`);
+            toast("Descuento aplicado");
+        } catch (err) { mostrar(false, esc(err.message)); toast(err.message, false); }
+    };
+
+    $("fBeca").addEventListener("submit", async e => {
+        e.preventDefault();
+        try {
+            const d = await api("POST", `/beneficios/beca/${matriculaSeleccionada()}`, {
+                porcentaje: Number($("porc").value),
+                motivo: $("motivo").value
+            });
+            mostrar(true, `<p>Beca de ${d.porcentaje}% registrada. ${esc(d.motivo ?? "")}</p>`);
+            e.target.reset();
+            toast("Beca aplicada");
+        } catch (err) { mostrar(false, esc(err.message)); toast(err.message, false); }
+    });
+
+    $("fFrac").addEventListener("submit", async e => {
+        e.preventDefault();
+        try {
+            const c = await api("POST", `/beneficios/fraccionamiento/${matriculaSeleccionada()}`,
+                { nroCuotas: Number($("nroCuotas").value) });
+            mostrar(true, `<p>Deuda de <strong>${soles(c.deudaTotal)}</strong> dividida en
+        <strong>${c.nroCuotas}</strong> cuotas. Las cuotas anteriores quedaron refinanciadas.</p>`);
+            toast("Fraccionamiento creado");
+        } catch (err) { mostrar(false, esc(err.message)); toast(err.message, false); }
+    });
+
+    api("GET", "/matriculas").then(list => {
+        fillSelect($("mat"), list,
+            m => `#${m.id} · ${m.estudiante.nombres} ${m.estudiante.apellidos} · ${m.periodo.anio}`,
+            "Seleccione matrícula");
+    }).catch(e => toast(e.message, false));
+</script>
+</body>
+</html>

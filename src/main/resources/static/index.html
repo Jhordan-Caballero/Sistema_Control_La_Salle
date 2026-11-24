@@ -3,25 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Alumno - La Salle</title>
+    <title>Inicio · La Salle</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="card">
-    <h1>Registrar alumno</h1>
+<aside id="nav"></aside>
 
-    <form id="formEstudiante">
-        <label>Código <input type="text" name="codigo" required></label>
-        <label>DNI <input type="text" name="dni" maxlength="8" required></label>
-        <label>Nombres <input type="text" name="nombres" required></label>
-        <label>Apellidos <input type="text" name="apellidos" required></label>
-        <label>Fecha de nacimiento <input type="date" name="fechaNacimiento" required></label>
-        <button type="submit">Guardar</button>
-    </form>
+<main>
+    <header class="page-header">
+        <h1>Panel general</h1>
+        <p>Resumen del sistema de matrícula y control de pensiones</p>
+    </header>
 
-    <p id="mensaje"></p>
-</div>
+    <section class="grid">
+        <div class="card stat"><span class="label">Total recaudado</span><span class="value" id="recaudado">—</span></div>
+        <div class="card stat"><span class="label">Deuda pendiente</span><span class="value" id="deuda">—</span></div>
+        <div class="card stat"><span class="label">Alumnos matriculados</span><span class="value" id="matriculados">—</span></div>
+    </section>
 
-<script src="js/app.js"></script>
+    <h2 class="section">Accesos rápidos</h2>
+    <section class="grid">
+        <a class="card quick" href="catalogo.html"><span class="icon">📚</span><h3>Catálogo</h3><p>Apoderados, grados, secciones y periodos</p></a>
+        <a class="card quick" href="alumnos.html"><span class="icon">🧑‍🎓</span><h3>Alumnos</h3><p>Registrar y revisar estudiantes</p></a>
+        <a class="card quick" href="matricula.html"><span class="icon">📝</span><h3>Matrícula</h3><p>Matricular con validación de deuda y vacantes</p></a>
+        <a class="card quick" href="pagos.html"><span class="icon">💵</span><h3>Pagos</h3><p>Cobrar cuotas en caja</p></a>
+        <a class="card quick" href="estado-cuenta.html"><span class="icon">📄</span><h3>Estado de cuenta</h3><p>Deuda, cuotas y pagos de un alumno</p></a>
+        <a class="card quick" href="conciliacion.html"><span class="icon">🏦</span><h3>Conciliación</h3><p>Importar reportes bancarios y conciliar</p></a>
+        <a class="card quick" href="beneficios.html"><span class="icon">🎁</span><h3>Beneficios</h3><p>Descuentos, becas y fraccionamientos</p></a>
+    </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    api("GET", "/reportes/resumen").then(r => {
+        $("recaudado").textContent = soles(r.totalRecaudado);
+        $("deuda").textContent = soles(r.deudaPendiente);
+        $("matriculados").textContent = r.matriculados;
+    }).catch(e => toast(e.message, false));
+</script>
 </body>
 </html>

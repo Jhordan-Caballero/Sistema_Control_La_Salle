@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo · La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<aside id="nav"></aside>
+
+<main>
+    <header class="page-header">
+        <h1>Catálogo</h1>
+        <p>Datos base necesarios antes de matricular: apoderados, grados, secciones y periodos</p>
+    </header>
+
+    <section class="grid">
+        <form id="fApo" class="card">
+            <h2>👨‍👩‍👧 Apoderado</h2>
+            <div class="row">
+                <label>DNI<input name="dni" maxlength="8" required></label>
+                <label>Teléfono<input name="telefono"></label>
+            </div>
+            <div class="row">
+                <label>Nombres<input name="nombres" required></label>
+                <label>Apellidos<input name="apellidos" required></label>
+            </div>
+            <label>Correo<input name="correo" type="email"></label>
+            <button class="btn-full">Guardar apoderado</button>
+        </form>
+
+        <form id="fGra" class="card">
+            <h2>🎓 Grado</h2>
+            <div class="row">
+                <label>Nivel
+                    <select name="nivel">
+                        <option>INICIAL</option>
+                        <option>PRIMARIA</option>
+                        <option>SECUNDARIA</option>
+                    </select>
+                </label>
+                <label>Nombre<input name="nombre" placeholder="1° Primaria" required></label>
+            </div>
+            <button class="btn-full">Guardar grado</button>
+        </form>
+
+        <form id="fSec" class="card">
+            <h2>🏫 Sección</h2>
+            <label>Grado<select id="sGrado" name="grado" required></select></label>
+            <div class="row">
+                <label>Sección<input name="nombre" placeholder="A" required></label>
+                <label>Vacantes<input name="vacantes" type="number" min="1" required></label>
+            </div>
+            <button class="btn-full">Guardar sección</button>
+        </form>
+
+        <form id="fPer" class="card">
+            <h2>📅 Periodo académico</h2>
+            <label>Año<input name="anio" type="number" required></label>
+            <div class="row">
+                <label>Inicio matrícula<input name="inicio" type="date" required></label>
+                <label>Fin matrícula<input name="fin" type="date" required></label>
+            </div>
+            <button class="btn-full">Guardar periodo</button>
+        </form>
+    </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    function bind(formId, fn) {
+        $(formId).addEventListener("submit", async e => {
+            e.preventDefault();
+            try {
+                await fn(formToObj(new FormData(e.target)));
+                e.target.reset();
+                toast("Guardado correctamente");
+            } catch (err) { toast(err.message, false); }
+        });
+    }
+
+    async function cargarGrados() {
+        fillSelect($("sGrado"), await api("GET", "/catalogo/grados"),
+            g => `${g.nivel} · ${g.nombre}`, "Seleccione grado");
+    }
+
+    bind("fApo", d => api("POST", "/catalogo/apoderados", d));
+    bind("fGra", d => api("POST", "/catalogo/grados", d).then(cargarGrados));
+    bind("fSec", d => api("POST", "/catalogo/secciones",
+        { nombre: d.nombre, vacantes: Number(d.vacantes), grado: { id: Number(d.grado) } }));
+    bind("fPer", d => api("POST", "/catalogo/periodos",
+        { anio: Number(d.anio), inicioMatricula: d.inicio, finMatricula: d.fin, estado: "ACTIVO" }));
+
+    cargarGrados().catch(e => toast(e.message, false));
+</script>
+</body>
+</html>

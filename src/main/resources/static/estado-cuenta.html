@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado de cuenta · La Salle</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<aside id="nav"></aside>
+
+<main>
+    <header class="page-header">
+        <h1>Estado de cuenta</h1>
+        <p>Deuda, cuotas e historial de pagos de cada alumno</p>
+    </header>
+
+    <div class="card" style="margin-bottom:20px">
+        <label style="margin:0">Alumno<select id="est"></select></label>
+    </div>
+
+    <div id="contenido" class="stack">
+        <div class="card empty">Seleccione un alumno</div>
+    </div>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="js/common.js"></script>
+<script>
+    async function cargar(id) {
+        if (!id) return;
+        const c = await api("GET", `/estudiantes/${id}/estado-cuenta`);
+        const vencidas = c.cuotas.filter(q => q.vencida).length;
+
+        $("contenido").innerHTML = `
+      <section class="grid">
+        <div class="card stat"><span class="label">Alumno</span><span class="value" style="font-size:20px">${esc(c.estudiante)}</span></div>
+        <div class="card stat"><span class="label">Deuda total</span><span class="value">${soles(c.deudaTotal)}</span></div>
+        <div class="card stat"><span class="label">Cuotas vencidas</span><span class="value">${vencidas}</span></div>
+      </section>
+
+      <div class="card">
+        <h2>Cuotas</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Concepto</th><th>Nº</th><th>Monto</th><th>Saldo</th><th>Vence</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${c.cuotas.length ? c.cuotas.map(q => `
+                <tr>
+                  <td>${esc(q.concepto)}</td>
+                  <td>${q.nro}</td>
+                  <td>${soles(q.monto)}</td>
+                  <td>${soles(q.saldo)}</td>
+                  <td>${q.vencimiento}</td>
+                  <td>${badgeEstado(q)}</td>
+                </tr>`).join("")
+            : `<tr><td colspan="6" class="empty">Sin cuotas registradas</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Historial de pagos</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Monto</th><th>Medio</th><th>Operación</th><th>Tipo</th></tr></thead>
+            <tbody>
+              ${c.pagos.length ? c.pagos.map(p => `
+                <tr>
+                  <td>${p.fecha.replace("T", " ").slice(0, 16)}</td>
+                  <td>${soles(p.monto)}</td>
+                  <td>${esc(p.medio ?? "—")}</td>
+                  <td>${esc(p.nroOperacion ?? "—")}</td>
+                  <td>${p.extemporaneo ? '<span class="badge warn">Extemporáneo</span>' : '<span class="badge ok">A tiempo</span>'}</td>
+                </tr>`).join("")
+            : `<tr><td colspan="5" class="empty">Sin pagos registrados</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+    }
+
+    async function init() {
+        const est = await api("GET", "/estudiantes");
+        fillSelect($("est"), est, e => `${e.codigo} · ${e.nombres} ${e.apellidos}`, "Seleccione alumno");
+
+        // Si llega desde matrícula con ?id=5, lo selecciona directamente
+        const id = new URLSearchParams(location.search).get("id");
+        if (id) { $("est").value = id; cargar(id); }
+    }
+
+    $("est").addEventListener("change", e => cargar(e.target.value));
+    init().catch(e => toast(e.message, false));
+</script>
+</body>
+</html>
